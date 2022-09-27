@@ -33,7 +33,26 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="log4net, Version=1.2.13.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
+      <HintPath>packages\log4net.2.0.3\lib\net40-full\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="SuperSocket.Common, Version=1.6.6.1, Culture=neutral, PublicKeyToken=6c80000676988ebb, processorArchitecture=MSIL">
+      <HintPath>packages\SuperSocket.1.6.6.1\lib\net45\SuperSocket.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="SuperSocket.Facility, Version=1.6.6.1, Culture=neutral, PublicKeyToken=6c80000676988ebb, processorArchitecture=MSIL">
+      <HintPath>packages\SuperSocket.1.6.6.1\lib\net45\SuperSocket.Facility.dll</HintPath>
+    </Reference>
+    <Reference Include="SuperSocket.SocketBase, Version=1.6.6.1, Culture=neutral, PublicKeyToken=6c80000676988ebb, processorArchitecture=MSIL">
+      <HintPath>packages\SuperSocket.1.6.6.1\lib\net45\SuperSocket.SocketBase.dll</HintPath>
+    </Reference>
+    <Reference Include="SuperSocket.SocketEngine, Version=1.6.6.1, Culture=neutral, PublicKeyToken=6c80000676988ebb, processorArchitecture=MSIL">
+      <HintPath>packages\SuperSocket.Engine.1.6.6.1\lib\net45\SuperSocket.SocketEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="SuperSocket.SocketService, Version=1.6.6.1, Culture=neutral, PublicKeyToken=6c80000676988ebb, processorArchitecture=MSIL">
+      <HintPath>packages\SuperSocket.Engine.1.6.6.1\lib\net45\SuperSocket.SocketService.exe</HintPath>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -43,11 +62,52 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AWS_GameLift\Common\AwsDateTimeOutcome.cs" />
+    <Compile Include="AWS_GameLift\Common\AwsLongOutcome.cs" />
+    <Compile Include="AWS_GameLift\Common\AwsStringOutcome.cs" />
+    <Compile Include="AWS_GameLift\Common\DescribePlayerSessionsOutcome.cs" />
+    <Compile Include="AWS_GameLift\Common\GameLiftErrors.cs" />
+    <Compile Include="AWS_GameLift\Common\GenericOutcome.cs" />
+    <Compile Include="AWS_GameLift\Common\GetInstanceCertificateOutcome.cs" />
+    <Compile Include="AWS_GameLift\Common\StartMatchBackfillOutcome.cs" />
+    <Compile Include="AWS_GameLift\Google\Sdk.cs" />
+    <Compile Include="AWS_GameLift\Server\GameLiftServerAPI.cs" />
+    <Compile Include="AWS_GameLift\Server\GameSessionParser.cs" />
+    <Compile Include="AWS_GameLift\Server\HttpClientInvoker.cs" />
+    <Compile Include="AWS_GameLift\Server\IAuxProxyMessageHandler.cs" />
+    <Compile Include="AWS_GameLift\Server\LogParameters.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\AttributeValue.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\BackfillDataMapper.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\DescribePlayerSessionsRequest.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\DescribePlayerSessionsRequestMapper.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\DescribePlayerSessionsResult.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\GameProperty.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\GameSession.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\GameSessionStatus.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\GetInstanceCertificateResult.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\MatchmakerData.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\Player.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\PlayerSession.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\PlayerSessionCreationPolicy.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\PlayerSessionStatus.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\StartMatchBackfillRequest.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\StartMatchBackfillResult.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\StopMatchBackfillRequest.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\UpdateGameSession.cs" />
+    <Compile Include="AWS_GameLift\Server\Model\UpdateReason.cs" />
+    <Compile Include="AWS_GameLift\Server\ProcessParameters.cs" />
+    <Compile Include="AWS_GameLift\Server\ServerState.cs" />
+    <Compile Include="AWS_GameLift\Server\WebSocketListener.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="Config\log4net.config" />
+    <None Include="Config\log4net.unix.config" />
+    <None Include="packages.config" />
+    <None Include="supersocket.cmd" />
+    <None Include="supersocket.sh" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
