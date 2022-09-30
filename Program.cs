@@ -8,23 +8,25 @@ using SuperSocket.SocketBase.Command;
 using SuperSocket.SocketBase.Protocol;
 using Aws.GameLift.Server;
 using Aws.GameLift.Server.Model;
+using FlatBuffers;
 
 namespace FastBurgerMaker_GameServer
 {
     internal class Program
     {
         public const int ServerPort = 9090;
+        public const int MaximumPlayerCount = 4;
 
         static void Main(string[] args)
         {
-            var appServer = new AppServer();
+            var gameAppServer = new GameAppServer();
 
-            if (!appServer.Setup(ServerPort))
+            if (!gameAppServer.Setup(ServerPort))
             {
                 return;
             }
 
-            if (!appServer.Start())
+            if (!gameAppServer.Start())
             {
                 return;
             }
@@ -39,7 +41,7 @@ namespace FastBurgerMaker_GameServer
             ProcessParameters processParameters = new ProcessParameters(
                 (gameSession) =>
                 {
-                    gameSession.MaximumPlayerSessionCount = 4;
+                    gameSession.MaximumPlayerSessionCount = MaximumPlayerCount;
 
                     GameLiftServerAPI.ActivateGameSession();
                 },
@@ -70,41 +72,63 @@ namespace FastBurgerMaker_GameServer
                 )
             );
 
-            appServer.NewSessionConnected += new SessionHandler<AppSession>(appServer_NewSessionConnected);
-            appServer.SessionClosed += new SessionHandler<AppSession, CloseReason>(appServer_SessionClosed);
+            var processReadyOutcome = GameLiftServerAPI.ProcessReady(processParameters);
+            if (processReadyOutcome.Success)
+            {
+                Console.WriteLine("ProcessReady success.");
+            }
+            else
+            {
+                Console.WriteLine("ProcessReady failure : " + processReadyOutcome.Error.ToString());
+            }
+
+            gameAppServer.NewSessionConnected += new SessionHandler<GameAppSession>(appServer_NewSessionConnected);
+            gameAppServer.SessionClosed += new SessionHandler<GameAppSession, CloseReason>(appServer_SessionClosed);
         }
 
-        static void appServer_NewSessionConnected(AppSession session)
+        static void appServer_NewSessionConnected(GameAppSession session)
         {
             session.Send("Hello new session!");
         }
 
-        static void appServer_SessionClosed(AppSession session, CloseReason closeReason)
+        static void appServer_SessionClosed(GameAppSession session, CloseReason closeReason)
         {
             session.Send("Bye session!");
         }
     }
-}
 
-public class ADD : CommandBase<AppSession, StringRequestInfo>
-{
-    public override void ExecuteCommand(AppSession session, StringRequestInfo requestInfo)
+    public class USER_READY : CommandBase<GameAppSession, GameRequestInfo>
     {
-        session.Send(requestInfo.Parameters.Select(p => Convert.ToInt32(p)).Sum().ToString());
-    }
-}
-
-public class MULT : CommandBase<AppSession, StringRequestInfo>
-{
-    public override void ExecuteCommand(AppSession session, StringRequestInfo requestInfo)
-    {
-        var result = 1;
-
-        foreach (var factor in requestInfo.Parameters.Select(p => Convert.ToInt32(p)))
+        public override void ExecuteCommand(GameAppSession session, GameRequestInfo requestInfo)
         {
-            result *= factor;
-        }
+            var describePlayerSessionsRequest = new DescribePlayerSessionsRequest()
+            {
+                GameSessionId = GameLiftServerAPI.GetGameSessionId().Result,
+                Limit = 1,
+                PlayerSessionStatusFilter = PlayerSessionStatusMapper.GetNameForPlayerSessionStatus(PlayerSessionStatus.NOT_SET)
+            };
 
-        session.Send(result.ToString());
+            var playerSessionsResult = GameLiftServerAPI.DescribePlayerSessions(describePlayerSessionsRequest).Result;
+
+            var playerSessionId = playerSessionsResult.PlayerSessions[0].PlayerSessionId;
+
+            var acceptPlayerSessionOutcome = GameLiftServerAPI.AcceptPlayerSession(playerSessionId);
+            if(acceptPlayerSessionOutcome.Success)
+            {
+                session.Send(playerSessionId);
+            }
+            else
+            {
+                // 에러처리
+            }
+        }
+    }
+
+    public class BURGER_NUMBER_COMPLETED : CommandBase<GameAppSession, GameRequestInfo>
+    {
+        public override void ExecuteCommand(GameAppSession session, GameRequestInfo requestInfo)
+        {
+            //
+        }
     }
 }
