@@ -10,9 +10,9 @@ namespace FastBurgerMaker_GameServer
     public class GameRequestInfo : IRequestInfo
     {
         public string Key { get; set; }
-        public string Body { get; set; }
+        public byte[] Body { get; set; }
 
-        public GameRequestInfo(string key, string body)
+        public GameRequestInfo(string key, byte[] body)
         {
             this.Key = key;
             this.Body = body;

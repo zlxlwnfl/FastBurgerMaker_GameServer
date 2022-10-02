@@ -47,7 +47,7 @@ namespace FastBurgerMaker_GameServer
 
             return new GameRequestInfo(
                 requestKey.ToString(),
-                Encoding.UTF8.GetString(bodyArray)
+                bodyArray
                 );
         }
 
