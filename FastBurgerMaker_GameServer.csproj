@@ -101,6 +101,8 @@
     <Compile Include="AWS_GameLift\Server\ProcessParameters.cs" />
     <Compile Include="AWS_GameLift\Server\ServerState.cs" />
     <Compile Include="AWS_GameLift\Server\WebSocketListener.cs" />
+    <Compile Include="FlatBuffer\burger_completed_dto.cs" />
+    <Compile Include="FlatBuffer\user_ready_dto.cs" />
     <Compile Include="GameAppServer.cs" />
     <Compile Include="RequestKey.cs" />
     <Compile Include="GameReceiveFilter.cs" />

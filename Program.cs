@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,15 +13,20 @@ using FlatBuffers;
 
 namespace FastBurgerMaker_GameServer
 {
-    internal class Program
+    public class Program
     {
         public const int ServerPort = 9090;
         public const int MaximumPlayerCount = 4;
 
+        static public ConcurrentDictionary<string, string> PlayerSessionMap = new ConcurrentDictionary<string, string>();
+        static public ConcurrentDictionary<string, string> PlayerGameMap = new ConcurrentDictionary<string, string>();
+        static public ConcurrentDictionary<string, List<string>> GamePlayersMap = new ConcurrentDictionary<string, List<string>>();
+        static public ConcurrentDictionary<string, int> PlayerBurgerCountMap = new ConcurrentDictionary<string, int>();
+
+        static public GameAppServer gameAppServer = new GameAppServer();
+
         static void Main(string[] args)
         {
-            var gameAppServer = new GameAppServer();
-
             if (!gameAppServer.Setup(ServerPort))
             {
                 return;
@@ -41,7 +47,7 @@ namespace FastBurgerMaker_GameServer
             ProcessParameters processParameters = new ProcessParameters(
                 (gameSession) =>
                 {
-                    gameSession.MaximumPlayerSessionCount = MaximumPlayerCount;
+                    //gameSession.MaximumPlayerSessionCount = MaximumPlayerCount;
 
                     GameLiftServerAPI.ActivateGameSession();
                 },
@@ -67,7 +73,7 @@ namespace FastBurgerMaker_GameServer
                 ServerPort,
                 new LogParameters(new List<string>()
                 {
-                    "/local/game/logs/myserver.log"
+                    "/local/game/logs/FastBurgerMaker_GameServer.log"
                 }
                 )
             );
@@ -101,34 +107,58 @@ namespace FastBurgerMaker_GameServer
     {
         public override void ExecuteCommand(GameAppSession session, GameRequestInfo requestInfo)
         {
-            var describePlayerSessionsRequest = new DescribePlayerSessionsRequest()
+            user_ready_dto userReadyDto = user_ready_dto.GetRootAsuser_ready_dto(
+                new ByteBuffer(requestInfo.Body)
+                );
+
+            var result = GameLiftServerAPI.AcceptPlayerSession(userReadyDto.PlayerSessionId);
+            if(result.Success)
             {
-                GameSessionId = GameLiftServerAPI.GetGameSessionId().Result,
-                Limit = 1,
-                PlayerSessionStatusFilter = PlayerSessionStatusMapper.GetNameForPlayerSessionStatus(PlayerSessionStatus.NOT_SET)
-            };
-
-            var playerSessionsResult = GameLiftServerAPI.DescribePlayerSessions(describePlayerSessionsRequest).Result;
-
-            var playerSessionId = playerSessionsResult.PlayerSessions[0].PlayerSessionId;
-
-            var acceptPlayerSessionOutcome = GameLiftServerAPI.AcceptPlayerSession(playerSessionId);
-            if(acceptPlayerSessionOutcome.Success)
-            {
-                session.Send(playerSessionId);
+                session.Send("sucess");
             }
             else
             {
-                // 에러처리
+                session.Send("fail: " + result.Error.ToString());
             }
         }
     }
 
-    public class BURGER_NUMBER_COMPLETED : CommandBase<GameAppSession, GameRequestInfo>
+    public class BURGER_COMPLETED : CommandBase<GameAppSession, GameRequestInfo>
     {
         public override void ExecuteCommand(GameAppSession session, GameRequestInfo requestInfo)
         {
-            //
+            burger_completed_dto burgerCompletedDto = burger_completed_dto.GetRootAsburger_completed_dto(
+                new ByteBuffer(requestInfo.Body)
+                );
+
+            string currentPlayerSessionId = burgerCompletedDto.PlayerSessionId;
+
+            int currentPlayerBurgerCount = Program.PlayerBurgerCountMap[currentPlayerSessionId]++;
+
+            string gameSessionId = Program.PlayerGameMap[currentPlayerSessionId];
+            List<string> playerSessions = Program.GamePlayersMap[gameSessionId];
+
+            playerSessions.ForEach(playerSessionId =>
+            {
+                if(playerSessionId == currentPlayerSessionId)
+                {
+                    return;
+                }
+
+                GameAppSession otherPlayerSession = Program.gameAppServer.GetSessionByID(
+                    Program.PlayerSessionMap[playerSessionId]
+                    );
+
+                FlatBufferBuilder flatBufferBuilder = new FlatBufferBuilder(1);
+                other_player_burger_count_dto.Startother_player_burger_count_dto(flatBufferBuilder);
+                other_player_burger_count_dto.AddKey(flatBufferBuilder, (int)RequestKey.OTHER_PLAYER_BURGER_COUNT);
+                other_player_burger_count_dto.AddOtherPlayerSessionId(flatBufferBuilder, flatBufferBuilder.CreateString(currentPlayerSessionId));
+                other_player_burger_count_dto.AddOtherPlayerBurgerCount(flatBufferBuilder, currentPlayerBurgerCount);
+                var encodeResult = other_player_burger_count_dto.Endother_player_burger_count_dto(flatBufferBuilder);
+                flatBufferBuilder.Finish(encodeResult.Value);
+
+                otherPlayerSession.Send(flatBufferBuilder.SizedByteArray().ToString());
+            });
         }
     }
 }

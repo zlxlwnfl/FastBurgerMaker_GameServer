@@ -17,6 +17,7 @@ namespace FastBurgerMaker_GameServer
         
         // BURGER: 200
         BURGER_LIST_TO_MAKE = 200,
-        BURGER_NUMBER_COMPLETED = 201,
+        BURGER_COMPLETED = 201,
+        OTHER_PLAYER_BURGER_COUNT = 202,
     }
 }
