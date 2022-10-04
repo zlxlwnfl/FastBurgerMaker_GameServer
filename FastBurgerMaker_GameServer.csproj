@@ -102,10 +102,14 @@
     <Compile Include="AWS_GameLift\Server\ServerState.cs" />
     <Compile Include="AWS_GameLift\Server\WebSocketListener.cs" />
     <Compile Include="FlatBuffer\burger_completed_dto.cs" />
+<<<<<<< HEAD
     <Compile Include="FlatBuffer\game_end_dto.cs" />
     <Compile Include="FlatBuffer\game_start_dto.cs" />
     <Compile Include="FlatBuffer\other_player_burger_count_dto.cs" />
     <Compile Include="FlatBuffer\time_end_dto.cs" />
+=======
+    <Compile Include="FlatBuffer\other_player_burger_count_dto.cs" />
+>>>>>>> main
     <Compile Include="FlatBuffer\user_ready_dto.cs" />
     <Compile Include="GameAppServer.cs" />
     <Compile Include="RequestKey.cs" />
