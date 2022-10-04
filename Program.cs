@@ -22,6 +22,7 @@ namespace FastBurgerMaker_GameServer
         static public ConcurrentDictionary<string, string> PlayerGameMap = new ConcurrentDictionary<string, string>();
         static public ConcurrentDictionary<string, List<string>> GamePlayersMap = new ConcurrentDictionary<string, List<string>>();
         static public ConcurrentDictionary<string, int> PlayerBurgerCountMap = new ConcurrentDictionary<string, int>();
+        static public ConcurrentDictionary<string, int> GameTimeEndMap = new ConcurrentDictionary<string, int>();
 
         static public GameAppServer gameAppServer = new GameAppServer();
 
@@ -53,14 +54,6 @@ namespace FastBurgerMaker_GameServer
                 },
                 (updateGameSession) =>
                 {
-                    var describePlayerSessionsRequest = new DescribePlayerSessionsRequest();
-                    describePlayerSessionsRequest.GameSessionId = updateGameSession.GameSession.GameSessionId;
-
-                    var describePlayerSessionsOutcome = GameLiftServerAPI.DescribePlayerSessions(describePlayerSessionsRequest);
-                    if(describePlayerSessionsOutcome.Result.PlayerSessions.Count == 4)
-                    {
-                        //게임 시작
-                    }
                 },
                 () =>
                 {
@@ -101,6 +94,23 @@ namespace FastBurgerMaker_GameServer
         {
             session.Send("Bye session!");
         }
+
+        static public byte[] makeResponse(RequestKey requestKey, byte[] bodyArray)
+        {
+            var sizeBytes = BitConverter.GetBytes(sizeof(int) + bodyArray.Length);
+            var requestKeyBytes = BitConverter.GetBytes((int)RequestKey.OTHER_PLAYER_BURGER_COUNT);
+
+            var sizeAndRequestKeyBytes = sizeBytes.Concat(requestKeyBytes);
+
+            if(bodyArray == null)
+            {
+                return sizeAndRequestKeyBytes.ToArray();
+            }
+            else
+            {
+                return sizeAndRequestKeyBytes.Concat(bodyArray).ToArray();
+            }
+        }
     }
 
     public class USER_READY : CommandBase<GameAppSession, GameRequestInfo>
@@ -111,14 +121,159 @@ namespace FastBurgerMaker_GameServer
                 new ByteBuffer(requestInfo.Body)
                 );
 
-            var result = GameLiftServerAPI.AcceptPlayerSession(userReadyDto.PlayerSessionId);
-            if(result.Success)
+            var acceptPlayerSessionResult = GameLiftServerAPI.AcceptPlayerSession(userReadyDto.PlayerSessionId);
+            if(!acceptPlayerSessionResult.Success)
             {
-                session.Send("sucess");
+                var sendMessage = Program.makeResponse(
+                    RequestKey.SUCESS,
+                    Encoding.UTF8.GetBytes(acceptPlayerSessionResult.Error.ToString())
+                    );
+
+                session.Send(sendMessage.ToString());
+            }
+
+            var describePlayerSessionsRequestWithPlayerSessionId = new DescribePlayerSessionsRequest();
+            describePlayerSessionsRequestWithPlayerSessionId.PlayerSessionId = userReadyDto.PlayerSessionId;
+
+            var describePlayerSessionsResultWithPlayerSessionId = GameLiftServerAPI.DescribePlayerSessions(describePlayerSessionsRequestWithPlayerSessionId);
+            var gameSessionId = describePlayerSessionsResultWithPlayerSessionId.Result.PlayerSessions[0].GameSessionId;
+
+            var playerList = Program.GamePlayersMap[gameSessionId];
+            playerList.Add(userReadyDto.PlayerSessionId);
+
+            if(playerList.Count >= Program.MaximumPlayerCount)
+            {
+                List<string> burgerListToComplete = makeBurgerListToComplete(100);
+
+                playerList.ForEach(playerSessionId =>
+                {
+                    GameAppSession playerAppSession = Program.gameAppServer.GetSessionByID(
+                        Program.PlayerSessionMap[playerSessionId]
+                        );
+
+                    FlatBufferBuilder flatBufferBuilder = new FlatBufferBuilder(1);
+                    game_start_dto.Startgame_start_dto(flatBufferBuilder);
+                    game_start_dto.CreateBurgerListToCompleteVector(flatBufferBuilder,
+                        burgerListToComplete.ConvertAll<StringOffset>(burger =>
+                        {
+                            return flatBufferBuilder.CreateString(burger);
+                        }).ToArray()
+                        );
+                    var encodeResult = game_start_dto.Endgame_start_dto(flatBufferBuilder);
+                    flatBufferBuilder.Finish(encodeResult.Value);
+
+                    var sendMessage = Program.makeResponse(
+                        RequestKey.GAME_START,
+                        flatBufferBuilder.SizedByteArray()
+                        );
+
+                    playerAppSession.Send(sendMessage.ToString());
+                });
+            }
+        }
+
+        private List<string> makeBurgerListToComplete(int size)
+        {
+            List<string> burgerListToComplete = new List<string>();
+
+            for(int i = 0; i < size; i++)
+            {
+                burgerListToComplete.Add(makeBurgerToComplete());
+            }
+
+            return burgerListToComplete;
+        }
+
+        private string makeBurgerToComplete()
+        {
+            // 1: 윗빵
+            // 2~6: 재료
+            // 7: 아랫빵
+
+            Random random = new Random();
+
+            string burgerToComplete = "1";
+
+            for(int i = 0; i < 5; i++)
+            {
+                burgerToComplete += random.Next(2, 7);
+            }
+
+            burgerToComplete += "7";
+
+            return burgerToComplete;
+        }
+    }
+
+    public class TIME_END : CommandBase<GameAppSession, GameRequestInfo>
+    {
+        public override void ExecuteCommand(GameAppSession session, GameRequestInfo requestInfo)
+        {
+            time_end_dto timeEndDto = time_end_dto.GetRootAstime_end_dto(
+                new ByteBuffer(requestInfo.Body)
+                );
+
+            string currentPlayerSessionId = timeEndDto.PlayerSessionId;
+            string gameSessionId = Program.PlayerGameMap[currentPlayerSessionId];
+
+            int timeEndCount = Program.GameTimeEndMap[gameSessionId]++;
+            if(timeEndCount >= Program.MaximumPlayerCount)
+            {
+                // 게임 종료
+
+                List<string> playerSessions = Program.GamePlayersMap[gameSessionId];
+
+                List<KeyValuePair<string, int>> playerBurgerCountRank = new List<KeyValuePair<string, int>>();
+
+                playerSessions.ForEach(playerSessionId =>
+                {
+                    playerBurgerCountRank.Add(
+                        new KeyValuePair<string, int>(playerSessionId, Program.PlayerBurgerCountMap[playerSessionId])
+                        );
+                });
+
+                playerBurgerCountRank.Sort((x, y) => y.Value.CompareTo(x.Value));
+
+                List<string> playerRank = new List<string>();
+
+                playerBurgerCountRank.ForEach(playerBurgerCount =>
+                {
+                    playerRank.Add(playerBurgerCount.Key);
+                });
+
+                playerSessions.ForEach(playerSessionId =>
+                {
+                    GameAppSession playerAppSession = Program.gameAppServer.GetSessionByID(
+                        Program.PlayerSessionMap[playerSessionId]
+                        );
+
+                    FlatBufferBuilder flatBufferBuilder = new FlatBufferBuilder(1);
+                    game_end_dto.Startgame_end_dto(flatBufferBuilder);
+                    game_end_dto.CreateRankVector(flatBufferBuilder,
+                        playerRank.ConvertAll<StringOffset>(player =>
+                        {
+                            return flatBufferBuilder.CreateString(player);
+                        }).ToArray()
+                        );
+                    var encodeResult = game_end_dto.Endgame_end_dto(flatBufferBuilder);
+                    flatBufferBuilder.Finish(encodeResult.Value);
+
+                    var sendMessage = Program.makeResponse(
+                        RequestKey.GAME_END,
+                        flatBufferBuilder.SizedByteArray()
+                        );
+
+                    playerAppSession.Send(sendMessage.ToString());
+                });
             }
             else
             {
-                session.Send("fail: " + result.Error.ToString());
+                var sendMessage = Program.makeResponse(
+                    RequestKey.SUCESS,
+                    null
+                    );
+
+                session.Send(sendMessage.ToString());
             }
         }
     }
@@ -132,9 +287,7 @@ namespace FastBurgerMaker_GameServer
                 );
 
             string currentPlayerSessionId = burgerCompletedDto.PlayerSessionId;
-
             int currentPlayerBurgerCount = Program.PlayerBurgerCountMap[currentPlayerSessionId]++;
-
             string gameSessionId = Program.PlayerGameMap[currentPlayerSessionId];
             List<string> playerSessions = Program.GamePlayersMap[gameSessionId];
 
@@ -145,19 +298,23 @@ namespace FastBurgerMaker_GameServer
                     return;
                 }
 
-                GameAppSession otherPlayerSession = Program.gameAppServer.GetSessionByID(
+                GameAppSession otherPlayerAppSession = Program.gameAppServer.GetSessionByID(
                     Program.PlayerSessionMap[playerSessionId]
                     );
 
                 FlatBufferBuilder flatBufferBuilder = new FlatBufferBuilder(1);
                 other_player_burger_count_dto.Startother_player_burger_count_dto(flatBufferBuilder);
-                other_player_burger_count_dto.AddKey(flatBufferBuilder, (int)RequestKey.OTHER_PLAYER_BURGER_COUNT);
                 other_player_burger_count_dto.AddOtherPlayerSessionId(flatBufferBuilder, flatBufferBuilder.CreateString(currentPlayerSessionId));
                 other_player_burger_count_dto.AddOtherPlayerBurgerCount(flatBufferBuilder, currentPlayerBurgerCount);
                 var encodeResult = other_player_burger_count_dto.Endother_player_burger_count_dto(flatBufferBuilder);
                 flatBufferBuilder.Finish(encodeResult.Value);
 
-                otherPlayerSession.Send(flatBufferBuilder.SizedByteArray().ToString());
+                var sendMessage = Program.makeResponse(
+                    RequestKey.OTHER_PLAYER_BURGER_COUNT, 
+                    flatBufferBuilder.SizedByteArray()
+                    );
+
+                otherPlayerAppSession.Send(sendMessage.ToString());
             });
         }
     }

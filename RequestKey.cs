@@ -9,15 +9,23 @@ namespace FastBurgerMaker_GameServer
     public enum RequestKey
     {
         // GAME CORE: 000
-        GAME_START = 000,
-        GAME_END = 001,
+        SUCESS = 000,
+        FAIL = 001,
+        GAME_START = 002,
+        GAME_END = 003,
+        TIME_END = 004,
         
         // USER: 100
         USER_READY = 100,
         
         // BURGER: 200
+<<<<<<< HEAD
+        BURGER_COMPLETED = 200,
+        OTHER_PLAYER_BURGER_COUNT = 201,
+=======
         BURGER_LIST_TO_MAKE = 200,
         BURGER_COMPLETED = 201,
         OTHER_PLAYER_BURGER_COUNT = 202,
+>>>>>>> main
     }
 }

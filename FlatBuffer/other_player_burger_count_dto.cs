@@ -19,6 +19,29 @@ public struct other_player_burger_count_dto : IFlatbufferObject
   public void __init(int _i, ByteBuffer _bb) { __p = new Table(_i, _bb); }
   public other_player_burger_count_dto __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
+<<<<<<< HEAD
+  public string OtherPlayerSessionId { get { int o = __p.__offset(4); return o != 0 ? __p.__string(o + __p.bb_pos) : null; } }
+#if ENABLE_SPAN_T
+  public Span<byte> GetOtherPlayerSessionIdBytes() { return __p.__vector_as_span<byte>(4, 1); }
+#else
+  public ArraySegment<byte>? GetOtherPlayerSessionIdBytes() { return __p.__vector_as_arraysegment(4); }
+#endif
+  public byte[] GetOtherPlayerSessionIdArray() { return __p.__vector_as_array<byte>(4); }
+  public int OtherPlayerBurgerCount { get { int o = __p.__offset(6); return o != 0 ? __p.bb.GetInt(o + __p.bb_pos) : (int)0; } }
+
+  public static Offset<FastBurgerMaker_GameServer.other_player_burger_count_dto> Createother_player_burger_count_dto(FlatBufferBuilder builder,
+      StringOffset other_player_session_idOffset = default(StringOffset),
+      int other_player_burger_count = 0) {
+    builder.StartTable(2);
+    other_player_burger_count_dto.AddOtherPlayerBurgerCount(builder, other_player_burger_count);
+    other_player_burger_count_dto.AddOtherPlayerSessionId(builder, other_player_session_idOffset);
+    return other_player_burger_count_dto.Endother_player_burger_count_dto(builder);
+  }
+
+  public static void Startother_player_burger_count_dto(FlatBufferBuilder builder) { builder.StartTable(2); }
+  public static void AddOtherPlayerSessionId(FlatBufferBuilder builder, StringOffset otherPlayerSessionIdOffset) { builder.AddOffset(0, otherPlayerSessionIdOffset.Value, 0); }
+  public static void AddOtherPlayerBurgerCount(FlatBufferBuilder builder, int otherPlayerBurgerCount) { builder.AddInt(1, otherPlayerBurgerCount, 0); }
+=======
   public int Key { get { int o = __p.__offset(4); return o != 0 ? __p.bb.GetInt(o + __p.bb_pos) : (int)0; } }
   public string OtherPlayerSessionId { get { int o = __p.__offset(6); return o != 0 ? __p.__string(o + __p.bb_pos) : null; } }
 #if ENABLE_SPAN_T
@@ -44,6 +67,7 @@ public struct other_player_burger_count_dto : IFlatbufferObject
   public static void AddKey(FlatBufferBuilder builder, int key) { builder.AddInt(0, key, 0); }
   public static void AddOtherPlayerSessionId(FlatBufferBuilder builder, StringOffset otherPlayerSessionIdOffset) { builder.AddOffset(1, otherPlayerSessionIdOffset.Value, 0); }
   public static void AddOtherPlayerBurgerCount(FlatBufferBuilder builder, int otherPlayerBurgerCount) { builder.AddInt(2, otherPlayerBurgerCount, 0); }
+>>>>>>> main
   public static Offset<FastBurgerMaker_GameServer.other_player_burger_count_dto> Endother_player_burger_count_dto(FlatBufferBuilder builder) {
     int o = builder.EndTable();
     return new Offset<FastBurgerMaker_GameServer.other_player_burger_count_dto>(o);
